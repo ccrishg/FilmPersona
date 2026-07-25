@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Environment
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
