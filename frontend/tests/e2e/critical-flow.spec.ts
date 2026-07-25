@@ -54,7 +54,20 @@ const RESULT = {
       },
     ],
   },
-  features: {},
+  features: {
+    n_films: 2,
+    median_popularity: 66,
+    pct_high_popularity: 0.5,
+    country_diversity: 0.6,
+    pct_non_english: 0.5,
+    n_countries: 2,
+    genre_diversity: 0.7,
+    director_concentration: 1,
+    pct_rewatch: 0,
+    avg_user_rating: 3.75,
+    rating_stddev: 1.06,
+    rating_delta: -0.4,
+  },
   stats: {
     totals: {
       films: 2,
@@ -114,6 +127,7 @@ test("username to profile", async ({ page }) => {
     page.getByRole("heading", { name: "Where your films come from" }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your genres" })).toBeVisible();
+  await expect(page.getByText("50% non-English")).toBeVisible();
   await expect(page.getByText("Parasite (2019)")).toBeVisible();
 });
 

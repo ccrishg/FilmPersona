@@ -1,7 +1,13 @@
 import type { Axis } from "../api/types";
 
 /** One personality axis: two poles and a 0-100 score toward the high pole. */
-export function AxisBar({ axis }: { axis: Axis }) {
+export function AxisBar({
+  axis,
+  chips = [],
+}: {
+  axis: Axis;
+  chips?: string[];
+}) {
   const towardHigh = axis.score >= 50;
   return (
     <div aria-label={`${axis.label}: ${axis.score} toward ${axis.high.name}`}>
@@ -29,7 +35,18 @@ export function AxisBar({ axis }: { axis: Axis }) {
         />
       </div>
 
-      <p className="mt-2 text-xs text-fog">{axis.explanation}</p>
+      {chips.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-1.5" title={axis.explanation}>
+          {chips.map((chip) => (
+            <li
+              key={chip}
+              className="rounded-full bg-night px-2.5 py-0.5 text-xs text-fog"
+            >
+              {chip}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -31,13 +31,9 @@ export function RatingScatter({
             domain={["auto", "auto"]}
             stroke={chart.inkMuted}
             fontSize={12}
-            label={{
-              value: "TMDB popularity (log)",
-              position: "insideBottom",
-              offset: -4,
-              fill: chart.inkMuted,
-              fontSize: 11,
-            }}
+            tickFormatter={(v: number) =>
+              String(v >= 10 ? Math.round(v) : Math.round(v * 10) / 10)
+            }
           />
           <YAxis
             dataKey="user_rating"
@@ -61,7 +57,10 @@ export function RatingScatter({
                     {p.title} {p.year ? `(${p.year})` : ""}
                   </div>
                   <div style={{ color: chart.inkMuted }}>
-                    you: ★{p.user_rating} · crowd: {p.vote_average ?? "—"}/10
+                    you: ★{p.user_rating} · crowd:{" "}
+                    {p.vote_average != null
+                      ? `★${(p.vote_average / 2).toFixed(1)}`
+                      : "—"}
                   </div>
                 </div>
               );

@@ -14,12 +14,24 @@ const axis: Axis = {
 };
 
 describe("AxisBar", () => {
-  it("shows both poles and the explanation", () => {
-    render(<AxisBar axis={axis} />);
+  it("shows both poles and the data chips", () => {
+    render(
+      <AxisBar
+        axis={axis}
+        chips={["median popularity 15", "10% blockbusters"]}
+      />,
+    );
 
     expect(screen.getByText("Mainstream")).toBeInTheDocument();
     expect(screen.getByText("Arthouse")).toBeInTheDocument();
-    expect(screen.getByText(/median film you watch/)).toBeInTheDocument();
+    expect(screen.getByText("median popularity 15")).toBeInTheDocument();
+    expect(screen.getByText("10% blockbusters")).toBeInTheDocument();
+  });
+
+  it("keeps the full explanation as a hover title on the chips", () => {
+    render(<AxisBar axis={axis} chips={["median popularity 15"]} />);
+
+    expect(screen.getByRole("list")).toHaveAttribute("title", axis.explanation);
   });
 
   it("places the marker at the score percentage", () => {

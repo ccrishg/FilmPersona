@@ -3,6 +3,7 @@ export const chart = {
   surface: "#14181c",
   surfaceSoft: "#1d232a",
   grid: "#2c3440",
+  landBase: "#39434f",
   ink: "#eef4fa",
   inkMuted: "#99aabb",
   seriesGreen: "#00e054",

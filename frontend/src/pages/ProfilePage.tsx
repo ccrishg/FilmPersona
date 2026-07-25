@@ -52,7 +52,7 @@ export function ProfilePage() {
     <div className="space-y-8">
       {username && <p className="text-fog">@{username}</p>}
 
-      <PersonalityCard personality={personality} />
+      <PersonalityCard personality={personality} features={result.features} />
 
       <section
         aria-label="totals"
@@ -69,21 +69,28 @@ export function ProfilePage() {
           value={
             stats.totals.avg_user_rating != null &&
             stats.totals.avg_crowd_rating != null
-              ? `★${stats.totals.avg_user_rating} / ${stats.totals.avg_crowd_rating}`
+              ? `★${stats.totals.avg_user_rating.toFixed(1)} vs ★${(
+                  stats.totals.avg_crowd_rating / 2
+                ).toFixed(1)}`
               : "—"
           }
         />
       </section>
 
       <Panel title="Where your films come from">
-        <CountryMap data={stats.countries} />
+        <CountryMap data={stats.countries} totalFilms={stats.totals.films} />
       </Panel>
 
       <div className="grid gap-8 lg:grid-cols-2">
         <Panel title="Your genres">
           <GenreChart genres={stats.genres} />
         </Panel>
-        <Panel title="You vs the crowd">
+        <Panel
+          title="You vs the crowd"
+          subtitle="Each dot is a film you rated. Left–right: how popular it is worldwide.
+            Up–down: your rating. Top-left dots are hidden gems you loved;
+            bottom-right, big hits that left you cold."
+        >
           <RatingScatter points={stats.rating_vs_popularity} />
         </Panel>
       </div>
@@ -126,14 +133,23 @@ function StatTile({ label, value }: { label: string; value: string | number }) {
 
 function Panel({
   title,
+  subtitle,
   children,
 }: {
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-night-border bg-night-soft p-6">
-      <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+      <h2
+        className={
+          subtitle ? "mb-1 text-lg font-semibold" : "mb-4 text-lg font-semibold"
+        }
+      >
+        {title}
+      </h2>
+      {subtitle && <p className="mb-4 text-sm text-fog">{subtitle}</p>}
       {children}
     </section>
   );

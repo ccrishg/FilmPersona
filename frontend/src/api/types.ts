@@ -53,9 +53,26 @@ export interface ProfileStats {
   favorites: { title: string; year: number | null }[];
 }
 
+// Mirror of FeatureSet (backend/app/analysis/personality/features.py).
+export interface ProfileFeatures {
+  n_films: number;
+  median_popularity: number | null;
+  pct_high_popularity: number | null;
+  country_diversity: number;
+  pct_non_english: number | null;
+  n_countries: number;
+  genre_diversity: number;
+  director_concentration: number;
+  pct_rewatch: number;
+  avg_user_rating: number | null;
+  rating_stddev: number | null;
+  rating_delta: number | null;
+}
+
 export interface ProfileResult {
   model_version: string;
   personality: Personality;
+  features?: ProfileFeatures;
   stats: ProfileStats;
 }
 

@@ -27,7 +27,7 @@ describe("PersonalityCard", () => {
   it("shows the 4-letter code and archetype", () => {
     render(<PersonalityCard personality={personality} />);
 
-    expect(screen.getByText("AGEC")).toBeInTheDocument();
+    expect(screen.getByText("#AGEC")).toBeInTheDocument();
     expect(screen.getByText("The World-Cinema Critic")).toBeInTheDocument();
     expect(
       screen.getByText("The full map, the highest bar."),
