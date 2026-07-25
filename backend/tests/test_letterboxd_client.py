@@ -80,6 +80,35 @@ async def test_cloudflare_403_raises_blocked(fast_client):
 
 
 @respx.mock
+async def test_block_on_a_later_page_keeps_earlier_pages(fast_client):
+    """A Cloudflare block on page 2+ shouldn't discard films already fetched."""
+    respx.get(f"{BASE_URL}/dave/").respond(html=_read("profile.html"))
+    respx.get(f"{BASE_URL}/dave/films/").respond(html=_read("films_page1.html"))
+    respx.get(f"{BASE_URL}/dave/films/page/2/").respond(status_code=403)
+    respx.get(f"{BASE_URL}/dave/rss/").respond(
+        content=_read("rss.xml"), headers={"content-type": "application/xml"}
+    )
+
+    result = await fast_client.fetch_history("dave")
+
+    # 72 films from page 1 (the fixture grid), none from the blocked page 2.
+    assert len(result.entries) >= 72
+
+
+@respx.mock
+async def test_blocked_rss_does_not_fail_the_whole_scrape(fast_client):
+    respx.get(f"{BASE_URL}/dave/").respond(html=_read("profile.html"))
+    respx.get(f"{BASE_URL}/dave/films/").respond(html=_read("films_page1.html"))
+    respx.get(f"{BASE_URL}/dave/films/page/2/").respond(status_code=403)
+    respx.get(f"{BASE_URL}/dave/rss/").respond(status_code=403)
+
+    result = await fast_client.fetch_history("dave")
+
+    assert len(result.entries) >= 72
+    assert all(e.watched_on is None for e in result.entries)
+
+
+@respx.mock
 async def test_rate_limiter_spaces_out_requests(monkeypatch):
     from app.config import get_settings
 

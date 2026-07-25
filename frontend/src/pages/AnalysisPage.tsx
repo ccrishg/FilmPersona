@@ -17,10 +17,14 @@ const ERROR_MESSAGES: Record<string, string> = {
     "We couldn't find that Letterboxd profile. Check the username?",
   PROFILE_PRIVATE:
     "That profile is private, so we can't read it from the outside.",
+  SCRAPE_BLOCKED:
+    "Letterboxd blocked our automated request before we could finish.",
   EMPTY_HISTORY: "That profile has no watched films yet — nothing to analyze.",
   INVALID_EXPORT: "That file doesn't look like a Letterboxd export ZIP.",
   INTERNAL_ERROR: "Something broke on our side. Please try again in a minute.",
 };
+
+const OFFERS_ZIP_FALLBACK = new Set(["PROFILE_PRIVATE", "SCRAPE_BLOCKED"]);
 
 function stageIndex(stage: AnalysisStage | null): number {
   return stage ? STAGES.findIndex((s) => s.key === stage) : -1;
@@ -73,7 +77,7 @@ export function AnalysisPage() {
       <ErrorPanel
         message={ERROR_MESSAGES[code] ?? ERROR_MESSAGES.INTERNAL_ERROR}
       >
-        {code === "PROFILE_PRIVATE" ? (
+        {OFFERS_ZIP_FALLBACK.has(code) ? (
           <>
             <p className="text-fog">
               You can still get your profile: export your data from Letterboxd

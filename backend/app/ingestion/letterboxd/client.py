@@ -4,6 +4,7 @@ Only fetches raw HTML/XML; all markup knowledge lives in parsers.py.
 """
 
 import asyncio
+import logging
 import time
 
 import httpx
@@ -11,6 +12,8 @@ import httpx
 from app.config import get_settings
 from app.ingestion.letterboxd import parsers
 from app.ingestion.models import IngestResult, NormalizedEntry
+
+logger = logging.getLogger(__name__)
 
 BASE_URL = "https://letterboxd.com"
 _USER_AGENT = (
@@ -34,9 +37,9 @@ class ProfilePrivateError(LetterboxdError):
 
 
 class ScrapeBlockedError(LetterboxdError):
-    """Letterboxd (or its CDN) refused us — treat like a temporary failure."""
+    """Letterboxd (or its CDN, e.g. Cloudflare) refused this request."""
 
-    code = "INTERNAL_ERROR"
+    code = "SCRAPE_BLOCKED"
 
 
 class _RateLimiter:
@@ -62,7 +65,12 @@ class LetterboxdClient:
         self._limiter = _RateLimiter(settings.scrape_min_delay_seconds)
         self._client = client or httpx.AsyncClient(
             base_url=BASE_URL,
-            headers={"User-Agent": _USER_AGENT, "Accept-Language": "en"},
+            http2=True,  # closer to a real browser's TLS/ALPN fingerprint than HTTP/1.1
+            headers={
+                "User-Agent": _USER_AGENT,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
             timeout=20.0,
             follow_redirects=True,
         )
@@ -70,12 +78,17 @@ class LetterboxdClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def _get(self, path: str) -> httpx.Response:
+    async def _get(self, path: str, retry_on_block: bool = True) -> httpx.Response:
         await self._limiter.wait()
         response = await self._client.get(path)
         if response.status_code == 404:
             raise ProfileNotFoundError(path)
         if response.status_code in (403, 429):
+            if retry_on_block:
+                # A short-lived rate limit clears; a hard CDN block does not — one
+                # retry with a longer pause tells them apart without much cost.
+                await asyncio.sleep(self._limiter._min_delay * 4)
+                return await self._get(path, retry_on_block=False)
             raise ScrapeBlockedError(f"{path} -> {response.status_code}")
         response.raise_for_status()
         return response
@@ -91,13 +104,31 @@ class LetterboxdClient:
         # Watched grid: every film the member has marked as seen, with ratings.
         films, total_pages = parsers.parse_films_page((await self._get(f"/{username}/films/")).text)
         for page in range(2, min(total_pages, self._max_pages) + 1):
-            page_films, _ = parsers.parse_films_page(
-                (await self._get(f"/{username}/films/page/{page}/")).text
-            )
+            try:
+                page_films, _ = parsers.parse_films_page(
+                    (await self._get(f"/{username}/films/page/{page}/")).text
+                )
+            except ScrapeBlockedError:
+                # Letterboxd/Cloudflare cut us off partway through pagination —
+                # keep the films from the pages we did get rather than losing them.
+                logger.warning(
+                    "Blocked fetching page %d/%d for %s, keeping %d films from earlier pages",
+                    page,
+                    total_pages,
+                    username,
+                    len(films),
+                )
+                break
             films.extend(page_films)
 
         # RSS: recent diary entries carry watch dates, rewatch flags and TMDB ids.
-        rss_entries = parsers.parse_rss((await self._get(f"/{username}/rss/")).text)
+        # This is an enrichment source, not the primary one — don't fail the whole
+        # scrape if it's unreachable.
+        try:
+            rss_entries = parsers.parse_rss((await self._get(f"/{username}/rss/")).text)
+        except ScrapeBlockedError:
+            logger.warning("Blocked fetching RSS feed for %s, continuing without it", username)
+            rss_entries = []
         by_slug = {e.slug: e for e in rss_entries if e.slug}
 
         entries: list[NormalizedEntry] = []

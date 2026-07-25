@@ -4,7 +4,7 @@
 dev:
     docker compose up -d redis
     cd backend && uv run alembic upgrade head
-    npx concurrently -k -n api,worker,web \
+    npx -y concurrently -k -n api,worker,web \
         "cd backend && uv run uvicorn app.main:app --reload --port 8000" \
         "cd backend && uv run celery -A app.worker worker --loglevel=info" \
         "cd frontend && npm run dev"

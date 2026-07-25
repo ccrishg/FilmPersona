@@ -6,6 +6,7 @@ export type AnalysisStage = "ingest" | "enrich" | "analyze";
 export type ErrorCode =
   | "PROFILE_PRIVATE"
   | "PROFILE_NOT_FOUND"
+  | "SCRAPE_BLOCKED"
   | "EMPTY_HISTORY"
   | "INVALID_EXPORT"
   | "INTERNAL_ERROR";
