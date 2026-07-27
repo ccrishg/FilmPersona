@@ -7,6 +7,7 @@ stops classifying them correctly, a threshold or weight regressed.
 from datetime import date
 
 from app.analysis.engine import build_profile
+from app.analysis.personality import config as personality_config
 from app.analysis.personality.archetypes import ARCHETYPES
 from app.analysis.personality.axes import compute_axes, personality_code
 from app.analysis.personality.features import extract_features
@@ -128,7 +129,7 @@ class TestBuildProfile:
     def test_profile_shape_and_content(self):
         profile = build_profile(festival_diet())
 
-        assert profile["model_version"] == "v1"
+        assert profile["model_version"] == personality_config.MODEL_VERSION
         personality = profile["personality"]
         assert personality["code"] == "AGEC"
         assert personality["archetype"]["name"] == "The World-Cinema Critic"
@@ -140,6 +141,17 @@ class TestBuildProfile:
         assert len(stats["countries"]) == 10
         assert stats["genres"][0]["count"] >= stats["genres"][-1]["count"]
         assert len(stats["rating_vs_popularity"]) == 20
+
+    def test_daily_stats_count_dated_watches(self):
+        stats = build_profile(marvel_diet())["stats"]
+
+        assert sum(day["count"] for day in stats["daily"]) == 20
+        assert all(len(day["date"]) == 10 for day in stats["daily"])  # ISO YYYY-MM-DD
+
+    def test_daily_stats_empty_without_dates(self):
+        stats = build_profile(festival_diet())["stats"]
+
+        assert stats["daily"] == []
 
     def test_unenriched_entries_still_produce_a_profile(self):
         entries = [(NormalizedEntry(title=f"Mystery {i}", year=2000), None) for i in range(10)]

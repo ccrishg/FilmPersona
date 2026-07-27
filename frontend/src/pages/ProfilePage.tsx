@@ -4,6 +4,7 @@ import { getAnalysis } from "../api/client";
 import type { ProfileResult } from "../api/types";
 import { PersonalityCard } from "../components/PersonalityCard";
 import { CountryMap } from "../components/charts/CountryMap";
+import { DailyHeatmap } from "../components/charts/DailyHeatmap";
 import { GenreChart } from "../components/charts/GenreChart";
 import { RatingScatter } from "../components/charts/RatingScatter";
 import { TimelineChart } from "../components/charts/TimelineChart";
@@ -14,6 +15,7 @@ export function ProfilePage() {
   const [result, setResult] = useState<ProfileResult | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rhythmView, setRhythmView] = useState<"monthly" | "daily">("monthly");
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +49,7 @@ export function ProfilePage() {
   }
 
   const { personality, stats } = result;
+  const hasDaily = (stats.daily ?? []).length > 0;
 
   return (
     <div className="space-y-8">
@@ -96,8 +99,36 @@ export function ProfilePage() {
       </div>
 
       {stats.timeline.length > 1 && (
-        <Panel title="Your watching rhythm">
-          <TimelineChart timeline={stats.timeline} />
+        <Panel
+          title="Your watching rhythm"
+          actions={
+            hasDaily && (
+              <div
+                role="group"
+                aria-label="rhythm view"
+                className="flex gap-1 rounded-full bg-night p-1"
+              >
+                <ToggleButton
+                  active={rhythmView === "monthly"}
+                  onClick={() => setRhythmView("monthly")}
+                >
+                  Monthly
+                </ToggleButton>
+                <ToggleButton
+                  active={rhythmView === "daily"}
+                  onClick={() => setRhythmView("daily")}
+                >
+                  Daily
+                </ToggleButton>
+              </div>
+            )
+          }
+        >
+          {rhythmView === "daily" && hasDaily ? (
+            <DailyHeatmap daily={stats.daily ?? []} />
+          ) : (
+            <TimelineChart timeline={stats.timeline} />
+          )}
         </Panel>
       )}
 
@@ -134,23 +165,49 @@ function StatTile({ label, value }: { label: string; value: string | number }) {
 function Panel({
   title,
   subtitle,
+  actions,
   children,
 }: {
   title: string;
   subtitle?: string;
+  actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-night-border bg-night-soft p-6">
-      <h2
-        className={
-          subtitle ? "mb-1 text-lg font-semibold" : "mb-4 text-lg font-semibold"
-        }
-      >
-        {title}
-      </h2>
-      {subtitle && <p className="mb-4 text-sm text-fog">{subtitle}</p>}
-      {children}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {subtitle && <p className="mt-1 text-sm text-fog">{subtitle}</p>}
+        </div>
+        {actions}
+      </div>
+      <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+function ToggleButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-full bg-night-soft px-3 py-1 text-xs font-semibold text-lime"
+          : "rounded-full px-3 py-1 text-xs text-fog hover:text-snow"
+      }
+    >
+      {children}
+    </button>
   );
 }

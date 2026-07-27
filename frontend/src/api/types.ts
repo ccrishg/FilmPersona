@@ -43,6 +43,7 @@ export interface ProfileStats {
   countries: { country: string; count: number }[];
   genres: { genre: string; count: number }[];
   timeline: { month: string; count: number }[];
+  daily?: { date: string; count: number }[]; // absent on profiles computed before this field existed
   rating_vs_popularity: {
     title: string;
     year: number | null;

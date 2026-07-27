@@ -88,6 +88,10 @@ const RESULT = {
       { month: "2026-05", count: 1 },
       { month: "2026-06", count: 1 },
     ],
+    daily: [
+      { date: "2026-05-10", count: 1 },
+      { date: "2026-06-02", count: 1 },
+    ],
     rating_vs_popularity: [
       { title: "Parasite", year: 2019, user_rating: 4.5, popularity: 87, vote_average: 8.5 },
       { title: "Amélie", year: 2001, user_rating: 3.0, popularity: 45, vote_average: 7.7 },
@@ -128,6 +132,7 @@ test("username to profile", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your genres" })).toBeVisible();
   await expect(page.getByText("50% non-English")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Daily" })).toBeVisible();
   await expect(page.getByText("Parasite (2019)")).toBeVisible();
 });
 

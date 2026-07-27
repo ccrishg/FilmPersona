@@ -3,6 +3,7 @@ import zipfile
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+from app.analysis.personality import config as personality_config
 from app.models import Analysis, AnalysisSource, AnalysisStatus, ErrorCode, Profile, WatchedEntry
 
 DIARY = """Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date
@@ -41,6 +42,14 @@ class TestCreateAnalysis:
     def test_fresh_analysis_is_reused_as_cache(self, enqueue, client, db_session):
         done = Analysis(source=AnalysisSource.SCRAPE, username="dave", status=AnalysisStatus.DONE)
         db_session.add(done)
+        db_session.flush()
+        db_session.add(
+            Profile(
+                analysis_id=done.id,
+                model_version=personality_config.MODEL_VERSION,
+                result={},
+            )
+        )
         db_session.commit()
 
         response = client.post("/api/analyses", json={"username": "dave"})
@@ -57,11 +66,32 @@ class TestCreateAnalysis:
             created_at=datetime.now(UTC) - timedelta(days=2),
         )
         db_session.add(stale)
+        db_session.flush()
+        db_session.add(
+            Profile(
+                analysis_id=stale.id,
+                model_version=personality_config.MODEL_VERSION,
+                result={},
+            )
+        )
         db_session.commit()
 
         response = client.post("/api/analyses", json={"username": "dave"})
 
         assert response.json()["id"] != stale.id
+        enqueue.assert_called_once()
+
+    @patch("app.api.analyses._enqueue")
+    def test_outdated_model_version_triggers_a_new_run(self, enqueue, client, db_session):
+        done = Analysis(source=AnalysisSource.SCRAPE, username="dave", status=AnalysisStatus.DONE)
+        db_session.add(done)
+        db_session.flush()
+        db_session.add(Profile(analysis_id=done.id, model_version="v0-ancient", result={}))
+        db_session.commit()
+
+        response = client.post("/api/analyses", json={"username": "dave"})
+
+        assert response.json()["id"] != done.id
         enqueue.assert_called_once()
 
 

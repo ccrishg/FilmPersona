@@ -16,11 +16,13 @@ def compute_stats(entries: list[EnrichedEntry]) -> dict[str, Any]:
     # Dominant genres.
     genres = Counter(g for f in films for g in f.genres or [])
 
-    # Watches per month (dated entries only — full when imported from CSV export).
+    # Watches per month/day (dated entries only — full when imported from CSV export).
     by_month: dict[str, int] = defaultdict(int)
+    by_day: dict[str, int] = defaultdict(int)
     for entry, _ in entries:
         if entry.watched_on:
             by_month[entry.watched_on.strftime("%Y-%m")] += 1
+            by_day[entry.watched_on.isoformat()] += 1
 
     # Your rating vs the crowd, one point per rated+enriched film.
     scatter = [
@@ -54,6 +56,7 @@ def compute_stats(entries: list[EnrichedEntry]) -> dict[str, Any]:
         ],
         "genres": [{"genre": genre, "count": count} for genre, count in genres.most_common(12)],
         "timeline": [{"month": month, "count": by_month[month]} for month in sorted(by_month)],
+        "daily": [{"date": day, "count": by_day[day]} for day in sorted(by_day)],
         "rating_vs_popularity": scatter,
         "favorites": favorites,
     }

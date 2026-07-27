@@ -7,10 +7,11 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.analysis.personality import config as personality_config
 from app.config import get_settings
 from app.db import get_db
 from app.ingestion.csv_import import InvalidExportError, parse_export_zip
-from app.models import Analysis, AnalysisSource, AnalysisStatus
+from app.models import Analysis, AnalysisSource, AnalysisStatus, Profile
 from app.pipeline import entry_to_row
 
 router = APIRouter(tags=["analyses"])
@@ -46,14 +47,18 @@ def _enqueue(analysis_id: str) -> None:
 def create_analysis(payload: AnalysisCreate, db: Session = Depends(get_db)) -> Any:
     settings = get_settings()
 
-    # Scrape cache: reuse a fresh finished analysis of the same username (24h).
+    # Scrape cache: reuse a fresh finished analysis of the same username (24h),
+    # but only if its Profile was computed with the current model/result shape —
+    # otherwise the frontend could receive a `result` missing newer fields.
     fresh_cutoff = datetime.now(UTC) - timedelta(seconds=settings.cache_ttl_seconds)
     cached = db.scalar(
         select(Analysis)
+        .join(Profile, Profile.analysis_id == Analysis.id)
         .where(
             Analysis.username == payload.username,
             Analysis.status == AnalysisStatus.DONE,
             Analysis.created_at >= fresh_cutoff,
+            Profile.model_version == personality_config.MODEL_VERSION,
         )
         .order_by(Analysis.created_at.desc())
         .limit(1)
