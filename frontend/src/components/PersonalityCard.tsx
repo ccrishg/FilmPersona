@@ -1,5 +1,10 @@
+import { useEffect, useState } from "react";
 import type { Personality, ProfileFeatures } from "../api/types";
+import { useFirstVisible } from "../hooks/useFirstVisible";
 import { AxisBar } from "./AxisBar";
+
+const NEUTRAL_SCORE = 50;
+const STAGGER_MS = 200;
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
@@ -42,8 +47,23 @@ export function PersonalityCard({
   features?: ProfileFeatures;
 }) {
   const { code, archetype, axes } = personality;
+  const { ref, visible, instant } = useFirstVisible<HTMLElement>();
+  const [settledCount, setSettledCount] = useState(0);
+
+  useEffect(() => {
+    if (!visible) return;
+    if (instant) {
+      setSettledCount(axes.length);
+      return;
+    }
+    if (settledCount >= axes.length) return;
+    const timer = setTimeout(() => setSettledCount((c) => c + 1), STAGGER_MS);
+    return () => clearTimeout(timer);
+  }, [visible, instant, settledCount, axes.length]);
+
   return (
     <section
+      ref={ref}
       className="rounded-2xl border border-night-border bg-night-soft p-8"
       aria-label="personality"
     >
@@ -63,13 +83,17 @@ export function PersonalityCard({
         </div>
 
         <div className="space-y-5">
-          {axes.map((axis) => (
-            <AxisBar
-              key={axis.key}
-              axis={axis}
-              chips={chipsFor(axis.key, features)}
-            />
-          ))}
+          {axes.map((axis, i) => {
+            const revealed = i < settledCount;
+            return (
+              <AxisBar
+                key={axis.key}
+                axis={revealed ? axis : { ...axis, score: NEUTRAL_SCORE }}
+                chips={chipsFor(axis.key, features)}
+                revealed={revealed}
+              />
+            );
+          })}
         </div>
       </div>
     </section>

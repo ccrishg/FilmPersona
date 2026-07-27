@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getAnalysis } from "../api/client";
 import type { ProfileResult } from "../api/types";
+import { AnimatedNumber } from "../components/AnimatedNumber";
 import { PersonalityCard } from "../components/PersonalityCard";
+import { ToggleGroup } from "../components/ToggleGroup";
 import { CountryMap } from "../components/charts/CountryMap";
 import { DailyHeatmap } from "../components/charts/DailyHeatmap";
 import { GenreChart } from "../components/charts/GenreChart";
+import { GlobeMap } from "../components/charts/GlobeMap";
 import { RatingScatter } from "../components/charts/RatingScatter";
 import { TimelineChart } from "../components/charts/TimelineChart";
 
@@ -16,6 +19,7 @@ export function ProfilePage() {
   const [username, setUsername] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rhythmView, setRhythmView] = useState<"monthly" | "daily">("monthly");
+  const [mapView, setMapView] = useState<"globe" | "flat">("globe");
 
   useEffect(() => {
     if (!id) return;
@@ -61,27 +65,72 @@ export function ProfilePage() {
         aria-label="totals"
         className="grid grid-cols-2 gap-4 md:grid-cols-4"
       >
-        <StatTile label="Films" value={stats.totals.films} />
+        <StatTile
+          label="Films"
+          value={<AnimatedNumber value={stats.totals.films} />}
+        />
         <StatTile
           label="Hours watched"
-          value={stats.totals.hours_watched ?? "—"}
+          value={
+            stats.totals.hours_watched != null ? (
+              <AnimatedNumber value={stats.totals.hours_watched} />
+            ) : (
+              "—"
+            )
+          }
         />
-        <StatTile label="Countries" value={stats.countries.length} />
+        <StatTile
+          label="Countries"
+          value={<AnimatedNumber value={stats.countries.length} />}
+        />
         <StatTile
           label="Your avg vs crowd"
           value={
             stats.totals.avg_user_rating != null &&
-            stats.totals.avg_crowd_rating != null
-              ? `★${stats.totals.avg_user_rating.toFixed(1)} vs ★${(
-                  stats.totals.avg_crowd_rating / 2
-                ).toFixed(1)}`
-              : "—"
+            stats.totals.avg_crowd_rating != null ? (
+              <>
+                ★
+                <AnimatedNumber
+                  value={stats.totals.avg_user_rating}
+                  decimals={1}
+                />{" "}
+                vs ★
+                <AnimatedNumber
+                  value={stats.totals.avg_crowd_rating / 2}
+                  decimals={1}
+                />
+              </>
+            ) : (
+              "—"
+            )
           }
         />
       </section>
 
-      <Panel title="Where your films come from">
-        <CountryMap data={stats.countries} totalFilms={stats.totals.films} />
+      <Panel
+        title="Where your films come from"
+        actions={
+          <ToggleGroup
+            ariaLabel="map view"
+            value={mapView}
+            onChange={setMapView}
+            options={[
+              { value: "globe", label: "Globe" },
+              { value: "flat", label: "Map" },
+            ]}
+          />
+        }
+      >
+        <div key={mapView} className="view-fade">
+          {mapView === "globe" ? (
+            <GlobeMap data={stats.countries} totalFilms={stats.totals.films} />
+          ) : (
+            <CountryMap
+              data={stats.countries}
+              totalFilms={stats.totals.films}
+            />
+          )}
+        </div>
       </Panel>
 
       <div className="grid gap-8 lg:grid-cols-2">
@@ -103,32 +152,25 @@ export function ProfilePage() {
           title="Your watching rhythm"
           actions={
             hasDaily && (
-              <div
-                role="group"
-                aria-label="rhythm view"
-                className="flex gap-1 rounded-full bg-night p-1"
-              >
-                <ToggleButton
-                  active={rhythmView === "monthly"}
-                  onClick={() => setRhythmView("monthly")}
-                >
-                  Monthly
-                </ToggleButton>
-                <ToggleButton
-                  active={rhythmView === "daily"}
-                  onClick={() => setRhythmView("daily")}
-                >
-                  Daily
-                </ToggleButton>
-              </div>
+              <ToggleGroup
+                ariaLabel="rhythm view"
+                value={rhythmView}
+                onChange={setRhythmView}
+                options={[
+                  { value: "monthly", label: "Monthly" },
+                  { value: "daily", label: "Daily" },
+                ]}
+              />
             )
           }
         >
-          {rhythmView === "daily" && hasDaily ? (
-            <DailyHeatmap daily={stats.daily ?? []} />
-          ) : (
-            <TimelineChart timeline={stats.timeline} />
-          )}
+          <div key={rhythmView} className="view-fade">
+            {rhythmView === "daily" && hasDaily ? (
+              <DailyHeatmap daily={stats.daily ?? []} />
+            ) : (
+              <TimelineChart timeline={stats.timeline} />
+            )}
+          </div>
         </Panel>
       )}
 
@@ -151,7 +193,7 @@ export function ProfilePage() {
   );
 }
 
-function StatTile({ label, value }: { label: string; value: string | number }) {
+function StatTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-night-border bg-night-soft p-4">
       <div className="text-2xl font-bold">{value}</div>
@@ -184,30 +226,5 @@ function Panel({
       </div>
       <div className="mt-4">{children}</div>
     </section>
-  );
-}
-
-function ToggleButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={
-        active
-          ? "rounded-full bg-night-soft px-3 py-1 text-xs font-semibold text-lime"
-          : "rounded-full px-3 py-1 text-xs text-fog hover:text-snow"
-      }
-    >
-      {children}
-    </button>
   );
 }

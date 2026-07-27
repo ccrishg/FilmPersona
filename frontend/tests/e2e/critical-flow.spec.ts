@@ -134,6 +134,15 @@ test("username to profile", async ({ page }) => {
   await expect(page.getByText("50% non-English")).toBeVisible();
   await expect(page.getByRole("button", { name: "Daily" })).toBeVisible();
   await expect(page.getByText("Parasite (2019)")).toBeVisible();
+
+  // Globe/Map toggle: globe renders by default, switching to Map still shows the legend.
+  await expect(
+    page.getByRole("figure", { name: "films by country of production, on a globe" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Map" }).click();
+  await expect(
+    page.getByRole("figure", { name: "films by country of production" }),
+  ).toBeVisible();
 });
 
 test("private profile offers the ZIP fallback", async ({ page }) => {
