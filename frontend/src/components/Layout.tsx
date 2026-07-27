@@ -8,9 +8,33 @@ export function Layout() {
           <Link to="/" className="text-xl font-bold tracking-tight">
             Film<span className="text-lime">Persona</span>
           </Link>
-          <span className="text-sm text-fog">
-            Your Letterboxd history, decoded
-          </span>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="hidden text-fog sm:inline">
+              Your Letterboxd history, decoded
+            </span>
+            <nav aria-label="secondary" className="flex items-center gap-2">
+              <Link
+                to="/how-it-works"
+                className="rounded-full border border-night-border px-3 py-1 text-xs
+                           font-semibold text-snow transition-colors hover:border-lime
+                           hover:text-lime"
+              >
+                How it works
+              </Link>
+              <span
+                aria-disabled="true"
+                title="Coming soon"
+                className="flex cursor-default items-center gap-1.5 rounded-full
+                           border border-night-border px-3 py-1 text-xs font-semibold
+                           text-fog/60"
+              >
+                Recommendations
+                <span className="rounded-full bg-night px-1.5 py-0.5 text-[10px] font-medium text-fog">
+                  Soon
+                </span>
+              </span>
+            </nav>
+          </div>
         </div>
       </header>
 
